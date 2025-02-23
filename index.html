@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>U-Downloader</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav>
+    <img src="/U.png">U-Download
+  </nav>
+  <div class="container">
+    <h1>U-Downloader</h1>
+    
+    <form id="downloadForm">
+
+      <input type="text" id="urlInput" autocomplete="off" placeholder="Enter YouTube URL" required>
+      <input type="text" id="filenameInput" autocomplete="off" placeholder="Enter filename (e.g., myvideo.mp4)">
+      <br>
+      <label for="qualitySelect">Select Quality:</label>
+      <select id="qualitySelect">
+          <option value="240p">240p</option>
+          <option value="360p">360p</option>
+          <option value="480p">480p</option>
+          <option value="1080p">1080p</option>
+      </select>
+      <br>
+      <button type="submit" class="button"><span>Download </span></button>
+    </form>
+    
+    <p id="downloadStatus"></p>
+
+    <div class="container">
+      <div class="box">
+          <img src="/vid_url.jpg" alt="Image 1">
+          <h3>Paste the YouTube video URL</h3>
+          <p>Click on the Usage Guidelines and after reading it in full, 
+            if you agree with and will abide by the contents of the Guidelines, 
+            paste the YouTube video URL in the field provided.</p>
+      </div>
+      <div class="box">
+          <img src="/Downloadurl.webp" alt="Image 2">
+          <h3>Download Video</h3>
+          <p> Click on the "Download" button to jump to the download page, 
+            select the clarity you need, click on the download.</p>
+      </div>
+      <div class="box">
+          <img src="/Fileurl.png" alt="Image 3">
+          <h3>Add File Name </h3>
+          <p>Click on file name to add a file name.</p>
+      </div>
+    </div>
+  
+    <footer>
+      <div id="Watermark"><img src="/U.png">
+      </div>
+      <div id="foot">© U-download All rights reserved.</div>
+    </footer>
+  <script src="scripts.js"></script>
+</body>
+</html>

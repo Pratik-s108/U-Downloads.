@@ -1,0 +1,154 @@
+/* Reset default margins & paddings */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+/* Body Styling */
+body {
+  background-color: #f5f5f5;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Navigation Bar */
+nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fd2c2c;
+  padding: 10px 0;
+}
+
+nav img {
+  height: 50px;
+}
+
+/* Main Container */
+.container {
+  max-width: 800px;
+  margin: 20px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Form Styling */
+form {
+  margin: 20px 0;
+}
+
+input, select {
+  width: 90%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.button {
+  border-radius: 4px;
+  background-color: #33ce2e;
+  border: none;
+  color: #FFFFFF;
+  text-align: center;
+  font-size: 28px;
+  padding: 20px;
+  width: 220px;
+  transition: all 0.5s;
+  cursor: pointer;
+  margin: 5px;
+}
+
+.button span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.5s;
+}
+
+.button span:after {
+  content: 'Now';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -10px;
+  transition: 0.5s;
+}
+
+.button:hover span {
+  padding-right: 55px;
+}
+
+.button:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+
+/* Download Status Message */
+#downloadStatus {
+  margin-top: 10px;
+  font-weight: bold;
+  color: green;
+}
+
+/* Responsive Image Boxes */
+.container .box {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 50%;
+  min-width: 250px;
+}
+
+.container .box img {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.container .box p {
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+/* Flexbox for Images */
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Footer Styling */
+footer {
+  margin-top: 30px;
+  padding: 15px;
+  background-color: #fd2c2c;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+footer img {
+  height: 40px;
+  margin-bottom: 5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+      flex-direction: column;
+      align-items: center;
+  }
+
+  .box {
+      width: 90%;
+  }
+}
