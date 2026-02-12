@@ -1,94 +1,169 @@
- const express = require('express');
- const { spawn } = require('child_process');
- const path = require('path');
- const app = express();
+const express  = require('express');
+const { spawn, execSync } = require('child_process');
+const path     = require('path');
+const fs       = require('fs');
+const os       = require('os');
+const crypto   = require('crypto');
 
- // Serve static files (frontend)
- app.use(express.static(path.join(__dirname)));
+const app = express();
+app.use(express.static(path.join(__dirname)));
 
- // YouTube video download route
- app.get('/download', async (req, res) => {
-     const videoUrl = req.query.url;
-     let fileName = req.query.filename || 'video.mp4';
-     const requestedQuality = req.query.quality || 'best';
+// ─── AUTO-UPDATE yt-dlp on startup ───────────────────────────────────────────
+try {
+  console.log('[startup] Updating yt-dlp...');
+  execSync('pip3 install --upgrade --break-system-packages yt-dlp', { stdio: 'inherit' });
+  console.log('[startup] yt-dlp up to date.');
+} catch (e) {
+  console.warn('[startup] Could not update yt-dlp:', e.message);
+}
 
-     if (!videoUrl) {
-         return res.status(400).send('Invalid YouTube URL');
-     }
+// ─── COOKIES PATH ────────────────────────────────────────────────────────────
+// Mount cookies.txt next to this file (or via Docker volume).
+// Export from Chrome/Firefox using the "Get cookies.txt LOCALLY" extension.
+const COOKIES_FILE = path.join(__dirname, 'cookies.txt');
+const hasCookies   = fs.existsSync(COOKIES_FILE);
+console.log(hasCookies
+  ? `[startup] cookies.txt found — YouTube auth enabled.`
+  : `[startup] No cookies.txt — downloads may be blocked by YouTube bot detection.`
+);
 
-     // Ensure filename ends with .mp4
-     if (!fileName.endsWith('.mp4')) {
-         fileName += '.mp4';
-     }
+// ─── FORMAT SELECTOR ─────────────────────────────────────────────────────────
+function qualityToFormat(quality) {
+  const h = { '240p': 240, '360p': 360, '480p': 480, '720p': 720, '1080p': 1080 }[quality];
+  if (!h) return 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best';
+  return [
+    `bestvideo[height=${h}][ext=mp4]+bestaudio[ext=m4a]`,
+    `bestvideo[height<=${h}][ext=mp4]+bestaudio[ext=m4a]`,
+    `bestvideo[height=${h}]+bestaudio`,
+    `bestvideo[height<=${h}]+bestaudio`,
+    `best[height<=${h}]`,
+    `best`,
+  ].join('/');
+}
 
+// ─── FRIENDLY ERROR PARSER ───────────────────────────────────────────────────
+function parseYtdlpError(stderr) {
+  if (!stderr) return 'Unknown yt-dlp error.';
+  if (stderr.includes('Sign in to confirm') || stderr.includes('bot') || stderr.includes('429'))
+    return 'YouTube bot detection triggered. Add a cookies.txt file — see README.';
+  if (stderr.includes('Video unavailable') || stderr.includes('not available'))
+    return 'Video unavailable (private, deleted, or region-locked).';
+  if (stderr.includes('Premieres in') || stderr.includes('is not yet available'))
+    return 'This video has not premiered yet.';
+  if (stderr.includes('members-only') || stderr.includes('join this channel'))
+    return 'This is a members-only video.';
+  if (stderr.includes('age-restricted') || stderr.includes('age gate'))
+    return 'Age-restricted — add cookies.txt from a signed-in browser.';
+  if (stderr.includes('No such format') || stderr.includes('Requested format is not available'))
+    return 'That quality is not available for this video. Try a lower setting.';
+  if (stderr.includes('urlopen error') || stderr.includes('getaddrinfo'))
+    return 'Network error inside container — check Docker internet access.';
+  if (stderr.includes('ffmpeg') && stderr.includes('not found'))
+    return 'ffmpeg not found — rebuild the Docker image.';
+  const errLines = stderr.split('\n').filter(l => /ERROR/i.test(l));
+  if (errLines.length) return errLines[errLines.length - 1].replace(/^\s*ERROR:\s*/i, '').trim();
+  return 'yt-dlp failed. Run: docker compose logs for details.';
+}
 
-     try {
-         // Step 1: Get available formats
-         const formatProcess = spawn('yt-dlp', ['-F', videoUrl]);
+// ─── DOWNLOAD ROUTE ───────────────────────────────────────────────────────────
+app.get('/download', (req, res) => {
+  const videoUrl         = (req.query.url || '').trim();
+  let   fileName         = (req.query.filename || 'video').trim();
+  const requestedQuality = req.query.quality || '480p';
 
-         let formatData = '';
+  if (!videoUrl) return res.status(400).send('Missing YouTube URL.');
 
-         formatProcess.stdout.on('data', (data) => {
-             formatData += data.toString();
-         });
+  fileName = fileName.replace(/\.mp4$/i, '') + '.mp4';
 
-         formatProcess.on('close', (code) => {
-             if (code !== 0) {
-                 console.error(`yt-dlp format check failed with code ${code}`);
-                 return res.status(500).send('Failed to retrieve available formats');
-             }
+  const formatSelector = qualityToFormat(requestedQuality);
+  const tmpId   = crypto.randomBytes(8).toString('hex');
+  const tmpFile = path.join(os.tmpdir(), `u-dl-${tmpId}.mp4`);
 
-             // Parse available formats
-             const availableFormats = formatData
-                 .split('\n')
-                 .map((line) => line.trim())
-                 .filter((line) => /^\d+\s/.test(line)) // Lines that start with a format ID
-                 .map((line) => {
-                     const parts = line.split(/\s+/);
-                     return {
-                         id: parts[0],
-                         quality: parts.slice(1).join(' '), // Rest of the line
-                     };
-                 });
+  console.log(`\n[download] URL     : ${videoUrl}`);
+  console.log(`[download] Quality : ${requestedQuality} → ${formatSelector}`);
+  console.log(`[download] Cookies : ${hasCookies ? 'yes' : 'no'}`);
+  console.log(`[download] Tmp     : ${tmpFile}`);
 
-             if (availableFormats.length === 0) {
-                 return res.status(500).send('No available formats found for this video');
-             }
+  const args = [
+  '--no-playlist',
+  '--merge-output-format', 'mp4',
+  '--remux-video', 'mp4',
+  '--force-ipv4',
+  '--js-runtimes', 'node',
+  '--extractor-args', 'youtube:player_client=web',
+  '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  '-f', formatSelector,
+  '-o', tmpFile,
+  ];
 
-             // Step 2: Select the best available format
-             let bestFormat = availableFormats.find((f) => f.quality.includes(requestedQuality))?.id 
-             || availableFormats[0].id;
+  // Inject cookies if available — this bypasses bot detection
+  if (hasCookies) {
+    args.push('--cookies', COOKIES_FILE);
+  }
 
-             console.log(`Selected format: ${bestFormat}`);
+  args.push(videoUrl);
 
-             // Step 3: Start video download
-             res.setHeader('Content-Type', 'video/mp4');
-             res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  let fullStderr = '';
+  const ytDlp = spawn('yt-dlp', args);
 
-             const ytDlpProcess = spawn('yt-dlp', ['-o', '-', '-f', bestFormat, videoUrl]);
+  ytDlp.stdout.on('data', d => process.stdout.write(d));
+  ytDlp.stderr.on('data', d => {
+    const chunk = d.toString();
+    fullStderr += chunk;
+    process.stderr.write(chunk);
+  });
 
-             ytDlpProcess.stdout.pipe(res);
+  ytDlp.on('error', err => {
+    console.error('[yt-dlp] spawn error:', err.message);
+    cleanup(tmpFile);
+    if (!res.headersSent)
+      res.status(500).send('yt-dlp not found — rebuild the Docker image.');
+  });
 
-             ytDlpProcess.stderr.on('data', (data) => {
-                 console.error(`yt-dlp error: ${data.toString()}`);
-             });
+  ytDlp.on('close', code => {
+    console.log(`[yt-dlp] exit code: ${code}`);
 
-             ytDlpProcess.on('close', (code) => {
-                 if (code !== 0) {
-                     console.error(`yt-dlp download failed with code ${code}`);
-                     res.end();
-                 }
-             });
-         });
-     } catch (error) {
-         console.error('Error during video download:', error.message);
-         if (!res.headersSent) {
-             res.status(500).send('Failed to download the video');
-         }
-     }
- });
+    if (code !== 0) {
+      cleanup(tmpFile);
+      const msg = parseYtdlpError(fullStderr);
+      console.error(`[yt-dlp] ${msg}`);
+      if (!res.headersSent) res.status(500).send(msg);
+      return;
+    }
 
- // Start the server
- app.listen(3000, () => {
-     console.log('Server running on http:localhost:3000');
+    let stat;
+    try { stat = fs.statSync(tmpFile); } catch (_) {
+      cleanup(tmpFile);
+      return res.status(500).send('Output file missing after download.');
+    }
+
+    if (stat.size === 0) {
+      cleanup(tmpFile);
+      return res.status(500).send('Output file is 0 bytes — try a different quality.');
+    }
+
+    console.log(`[server] Sending "${fileName}" (${(stat.size / 1024 / 1024).toFixed(1)} MB)`);
+
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', stat.size);
+
+    const stream = fs.createReadStream(tmpFile);
+    stream.pipe(res);
+    stream.on('error', e => { console.error('[stream]', e.message); cleanup(tmpFile); });
+
+    const done = once(() => cleanup(tmpFile));
+    res.on('finish', done);
+    res.on('close',  done);
+  });
+
+  req.on('close', () => { ytDlp.kill('SIGTERM'); cleanup(tmpFile); });
 });
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function cleanup(f) { try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch (_) {} }
+function once(fn)   { let c = false; return (...a) => { if (!c) { c = true; fn(...a); } }; }
+
+// ─── START ───────────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✓ U-Download on http://localhost:${PORT}`));
