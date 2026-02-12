@@ -3,60 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>U-Downloader</title>
+  <title>U-Download</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
   <nav>
-    <img src="/U.png">U-Download
+    <a href="landing.html" class="nav-logo">
+      <span class="nav-u">U</span><span class="nav-rest">-Download</span>
+    </a>
   </nav>
+
   <div class="container">
-    <h1>U-Downloader</h1>
-    
+    <h1>Download<br><span class="accent">Any Video.</span></h1>
+    <p class="hero-sub">Paste a YouTube URL, pick your quality, and get your file.</p>
+
     <form id="downloadForm">
+      <div class="input-group">
+        <span class="input-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </span>
+        <input type="text" id="urlInput" autocomplete="off" placeholder="https://youtube.com/watch?v=..." required>
+      </div>
 
-      <input type="text" id="urlInput" autocomplete="off" placeholder="Enter YouTube URL" required>
-      <input type="text" id="filenameInput" autocomplete="off" placeholder="Enter filename (e.g., myvideo.mp4)">
-      <br>
-      <label for="qualitySelect">Select Quality:</label>
-      <select id="qualitySelect">
-          <option value="240p">240p</option>
-          <option value="360p">360p</option>
-          <option value="480p">480p</option>
-          <option value="1080p">1080p</option>
-      </select>
-      <br>
-      <button type="submit" class="button"><span>Download </span></button>
+      <div class="input-group">
+        <span class="input-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </span>
+        <input type="text" id="filenameInput" autocomplete="off" placeholder="Filename (e.g. myvideo) — .mp4 added automatically">
+      </div>
+
+      <div class="quality-row">
+        <label>Quality</label>
+        <div class="quality-pills" id="qualityPills">
+          <button type="button" class="pill" data-val="240p">240p</button>
+          <button type="button" class="pill" data-val="360p">360p</button>
+          <button type="button" class="pill active" data-val="480p">480p</button>
+          <button type="button" class="pill" data-val="720p">720p</button>
+          <button type="button" class="pill" data-val="1080p">1080p</button>
+        </div>
+        <input type="hidden" id="qualitySelect" value="480p">
+      </div>
+
+      <button type="submit" class="download-btn" id="downloadBtn">
+        <span class="btn-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download
+        </span>
+        <span class="btn-loading" style="display:none">
+          <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="60"/>
+          </svg>
+          Downloading...
+        </span>
+      </button>
     </form>
-    
-    <p id="downloadStatus"></p>
 
-    <div class="container">
-      <div class="box">
-          <img src="/vid_url.jpg" alt="Image 1">
-          <h3>Paste the YouTube video URL</h3>
-          <p>Click on the Usage Guidelines and after reading it in full, 
-            if you agree with and will abide by the contents of the Guidelines, 
-            paste the YouTube video URL in the field provided.</p>
+    <div id="downloadStatus" class="status-msg"></div>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works">
+      <h2>How It Works</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </div>
+          <h3>Paste URL</h3>
+          <p>Copy the YouTube video link and paste it into the field above.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+            </svg>
+          </div>
+          <h3>Pick Quality</h3>
+          <p>Choose the resolution that fits your needs — from 240p up to 1080p.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </div>
+          <h3>Download</h3>
+          <p>Hit the button and your file saves directly to your device.</p>
+        </div>
       </div>
-      <div class="box">
-          <img src="/Downloadurl.webp" alt="Image 2">
-          <h3>Download Video</h3>
-          <p> Click on the "Download" button to jump to the download page, 
-            select the clarity you need, click on the download.</p>
-      </div>
-      <div class="box">
-          <img src="/Fileurl.png" alt="Image 3">
-          <h3>Add File Name </h3>
-          <p>Click on file name to add a file name.</p>
-      </div>
-    </div>
-  
-    <footer>
-      <div id="Watermark"><img src="/U.png">
-      </div>
-      <div id="foot">© U-download All rights reserved.</div>
-    </footer>
+    </section>
+  </div>
+
+  <footer>
+    <div class="footer-logo"><span class="nav-u">U</span></div>
+    <p>© U-Download — All rights reserved.</p>
+  </footer>
+
   <script src="scripts.js"></script>
 </body>
 </html>
